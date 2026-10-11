@@ -51,3 +51,30 @@ def test_get_tasks_for_user_unknown():
 def test_get_tasks_for_user_invalid():
     with pytest.raises(ValidationError):
         tasks.get_tasks_for_user(0)
+
+
+def test_create_task_default_priority():
+    assert tasks.create_task(1, "Default priority")["priority"] == 3
+
+
+@pytest.mark.parametrize("priority", [1, 5])
+def test_create_task_explicit_priority(priority):
+    assert tasks.create_task(1, "Explicit priority", priority)["priority"] == priority
+
+
+@pytest.mark.parametrize("priority", [0, 6, -1])
+def test_create_task_priority_out_of_range(priority):
+    with pytest.raises(ValidationError):
+        tasks.create_task(1, "x", priority)
+
+
+@pytest.mark.parametrize("priority", ["3", 3.0, None, True])
+def test_create_task_priority_wrong_type(priority):
+    with pytest.raises(ValidationError):
+        tasks.create_task(1, "x", priority)
+
+
+@pytest.mark.parametrize("task_id", [1, 2])
+def test_seed_tasks_have_valid_priority(task_id):
+    priority = tasks.get_task(task_id)["priority"]
+    assert isinstance(priority, int) and 1 <= priority <= 5
