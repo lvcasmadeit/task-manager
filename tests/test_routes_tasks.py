@@ -24,14 +24,18 @@ def test_create_without_priority_defaults_to_3():
 
 @pytest.mark.parametrize("priority", [1, 5])
 def test_create_valid_priority(priority):
-    status, task = handle_create_task({"user_id": 1, "title": "P", "priority": priority})
+    status, task = handle_create_task(
+        {"user_id": 1, "title": "P", "priority": priority}
+    )
     assert status == 201
     assert task["priority"] == priority
 
 
 @pytest.mark.parametrize("priority", [0, 6, "3", 3.0, True, None])
 def test_create_invalid_priority(priority):
-    status, body = handle_create_task({"user_id": 1, "title": "P", "priority": priority})
+    status, body = handle_create_task(
+        {"user_id": 1, "title": "P", "priority": priority}
+    )
     assert status == 400
     assert "error" in body
 
@@ -104,7 +108,9 @@ def test_update_invalid_task_id():
 
 def test_update_ignores_id_and_user_id_in_body():
     task = _create()
-    status, updated = handle_update_task(task["id"], {"id": 1, "user_id": 2, "priority": 2})
+    status, updated = handle_update_task(
+        task["id"], {"id": 1, "user_id": 2, "priority": 2}
+    )
     assert status == 200
     assert updated["id"] == task["id"]
     assert updated["user_id"] == task["user_id"]

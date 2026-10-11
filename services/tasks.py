@@ -36,7 +36,11 @@ def _validate_priority(priority: int) -> int:
     Raises:
         ValidationError: If priority is not an int (bool excluded) in 1-5.
     """
-    if isinstance(priority, bool) or not isinstance(priority, int) or not 1 <= priority <= 5:
+    if (
+        isinstance(priority, bool)
+        or not isinstance(priority, int)
+        or not 1 <= priority <= 5
+    ):
         raise ValidationError(f"Invalid priority: {priority!r}")
     return priority
 
@@ -65,7 +69,12 @@ def create_task(user_id: int, title: str, priority: int = 3) -> dict:
     if user_repo.find_by_id(user_id) is None:
         raise NotFoundError(f"User {user_id} not found")
     return task_repo.insert(
-        {"user_id": user_id, "title": title.strip(), "done": False, "priority": priority}
+        {
+            "user_id": user_id,
+            "title": title.strip(),
+            "done": False,
+            "priority": priority,
+        }
     )
 
 
