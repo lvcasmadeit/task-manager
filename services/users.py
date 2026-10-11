@@ -23,3 +23,12 @@ def get_user(user_id: int) -> dict:
     if user is None:
         raise NotFoundError(f"User {user_id} not found")
     return user
+
+
+def list_users() -> list[dict]:
+    """List all users.
+
+    Returns:
+        A list of every user as a dict, in insertion order.
+    """
+    return user_repo.find_all()
