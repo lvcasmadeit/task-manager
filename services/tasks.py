@@ -132,3 +132,28 @@ def get_tasks_for_user(user_id: int) -> list[dict]:
     if user_repo.find_by_id(user_id) is None:
         raise NotFoundError(f"User {user_id} not found")
     return task_repo.find_by_user_id(user_id)
+
+
+def list_tasks(priority: int | str | None = None) -> list[dict]:
+    """List tasks, optionally filtered by priority.
+
+    Args:
+        priority: Integer priority from 1 to 5, a string of digits (as
+            received from a query string, converted with int()), or None for
+            no filter. Defaults to None.
+
+    Returns:
+        The matching tasks as a list of dicts; empty if none match.
+
+    Raises:
+        ValidationError: If priority is a string that is not purely digits,
+            or is not an integer from 1 to 5 (bool and float are rejected).
+    """
+    if priority is None:
+        return task_repo.find_all()
+    if isinstance(priority, str):
+        if not (priority.isascii() and priority.isdigit()):
+            raise ValidationError(f"Invalid priority: {priority!r}")
+        priority = int(priority)
+    _validate_priority(priority)
+    return task_repo.find_all(priority)

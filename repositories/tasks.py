@@ -18,6 +18,19 @@ def find_by_user_id(user_id: int) -> list[dict]:
     return [t for t in _TASKS.values() if t["user_id"] == user_id]
 
 
+def find_all(priority: int | None = None) -> list[dict]:
+    """Return all task rows, optionally filtered by priority.
+
+    Args:
+        priority: If given, only rows whose priority equals this value are
+            returned. If None, every row is returned.
+
+    Returns:
+        The matching task rows (possibly empty). Never raises.
+    """
+    return [t for t in _TASKS.values() if priority is None or t["priority"] == priority]
+
+
 def insert(task: dict) -> dict:
     """Store a task, assigning the next integer id, and return it."""
     task_id = max(_TASKS, default=0) + 1

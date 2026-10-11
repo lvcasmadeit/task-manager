@@ -169,3 +169,38 @@ def test_update_task_invalid_priority_no_partial_write():
     with pytest.raises(ValidationError):
         tasks.update_task(task["id"], title="Changed", priority=9)
     assert tasks.get_task(task["id"])["title"] == "Original"
+
+
+def _ids(result):
+    return {t["id"] for t in result}
+
+
+def test_list_tasks_unfiltered_contains_seed_tasks():
+    assert {1, 2} <= _ids(tasks.list_tasks())
+
+
+def test_list_tasks_filter_by_priority():
+    result = tasks.list_tasks(1)
+    assert result and all(t["priority"] == 1 for t in result)
+    assert 1 in _ids(result)
+    assert 2 not in _ids(result)
+
+
+def test_list_tasks_numeric_string_equals_int():
+    assert tasks.list_tasks("1") == tasks.list_tasks(1)
+
+
+def test_list_tasks_no_match_for_other_priority():
+    task = tasks.create_task(1, "Lowest priority", 5)
+    assert task["id"] in _ids(tasks.list_tasks(5))
+    assert task["id"] not in _ids(tasks.list_tasks(4))
+
+
+def test_list_tasks_none_equals_unfiltered():
+    assert tasks.list_tasks(None) == tasks.list_tasks()
+
+
+@pytest.mark.parametrize("priority", [0, 6, -1, "abc", "3.0", "", 3.0, True])
+def test_list_tasks_invalid_priority(priority):
+    with pytest.raises(ValidationError):
+        tasks.list_tasks(priority)
