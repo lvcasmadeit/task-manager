@@ -125,4 +125,3 @@ The lead wrote the decomposition and performed the file-level verification. If
 this is submitted as your own work, review it and re-run the sessions yourself
 in the Claude Code terminal; the supervision decisions here are the lead's, not
 a record of you typing in a terminal.
-
