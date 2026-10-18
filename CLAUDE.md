@@ -11,6 +11,13 @@ Small in-memory Python task tracker. Python 3.12, pytest, ruff.
 - Lint: `.venv/bin/ruff check .`
 - Line length: `.venv/bin/ruff check --select E501 .` (`pyproject.toml` sets 88 but default
   ruff rules do not enforce it, so `ruff check .` alone misses long lines)
+- Slash commands (`.claude/commands/`):
+  - `/audit-errors <services/file.py>`: convert bare exceptions / `None`-for-missing to
+    `AppError` subclasses one function at a time; skips functions already correct.
+  - `/scaffold-endpoint <resource> <METHOD>`: create the route, service, schema and
+    repository files plus tests for a new resource, e.g. `tags POST`.
+  - `/fix-line-length <file>`: wrap lines over 88 characters after `ruff --select E501`
+    flags them, without changing behaviour.
 
 ## Architecture
 Strict layering: `routes/` -> `services/` -> `repositories/`.
@@ -42,11 +49,8 @@ Strict layering: `routes/` -> `services/` -> `repositories/`.
 - Never change an existing function signature in `services/` unless the task says so;
   routes and tests depend on them. "Signature" = name, parameter names/order/defaults;
   adding type hints is allowed and required, renaming or reordering is not.
-- Never edit `services/users.py` or `utils/errors.py` unless explicitly asked: they are the
-  reference pattern.
-- `services/users.py` is append-only even when a task asks for a new function in it: never
-  modify `get_user`, and never import `services/users.py` from `services/notifications.py`
-  or `services/tasks.py` (go through `repositories/users.py`).
+- Never import `services/users.py` from `services/notifications.py` or
+  `services/tasks.py` (go through `repositories/users.py`).
 - Never put validation, body-type guards or `repositories/` imports in `routes/users.py` or
   `routes/tasks.py`; new notification logic goes in `services/notifications.py`, not in
   `services/users.py`.
@@ -54,4 +58,18 @@ Strict layering: `routes/` -> `services/` -> `repositories/`.
   `tests/test_routes_tasks.py` from a task scoped to another feature; put new tests in a new
   `tests/test_<module>.py`.
 - Never delete or weaken existing assertions in `tests/` to make a run pass.
-- Never edit `.venv/`, `requirements.txt` or `pyproject.toml`; no new dependencies.
+- No new dependencies (the hook blocks edits to the manifests, not `pip install`).
+
+## Hooks
+`.claude/hooks/guard_writes.py`, registered in `.claude/settings.json` for
+`Write|Edit|MultiEdit|Bash`, runs before each of those tool calls and blocks it with exit 2
+(its stderr message goes back to Claude). It protects `utils/errors.py`,
+`services/users.py`, `requirements.txt`, `pyproject.toml` and `.venv/` (case-insensitive,
+and against shell redirects, `cp`/`mv`/`tee`/`sed -i` and Python `open(..., 'w')`),
+rejects Bash commands containing `DROP TABLE`, `TRUNCATE TABLE`, `rm -rf` or `git push --force`,
+and refuses a hardcoded `postgresql://` or `sqlite:///` string written to `services/tasks.py`.
+To add a rule, append a project-relative path to `BLOCKED_PATHS`, a `(name, regex)` pair to
+`BASH_PATTERNS`, or a path to `CONTENT_GUARDED_PATHS`, then add one blocked and one allowed
+case to `tests/test_guard_writes.py` and run `.venv/bin/pytest tests/test_guard_writes.py -q`.
+A path assembled at run time (`cd utils && echo x > errors.py`) is a known gap, so the
+hook, not this file, is the source of truth for what is enforced.
