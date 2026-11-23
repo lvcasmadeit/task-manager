@@ -61,9 +61,8 @@ def handle_update_notifications(user_id: int, body: dict) -> tuple[int, dict]:
         otherwise (error status, {"error": message}).
     """
     try:
-        pref = notification_service.set_notification_pref(
-            user_id, body.get("notification_pref")
+        return 200, notification_service.set_notification_pref_from_body(
+            user_id, body
         )
-        return 200, pref
     except AppError as exc:
         return exc.status_code, {"error": exc.message}

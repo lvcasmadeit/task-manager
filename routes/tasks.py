@@ -21,14 +21,8 @@ def handle_create_task(body: dict) -> tuple[int, dict]:
     Returns:
         (201, task) on success, otherwise (error status, {"error": message}).
     """
-    user_id = body.get("user_id")
-    title = body.get("title")
     try:
-        if "priority" in body:
-            task = task_service.create_task(user_id, title, body["priority"])
-        else:
-            task = task_service.create_task(user_id, title)
-        return 201, task
+        return 201, task_service.create_task_from_body(body)
     except AppError as exc:
         return exc.status_code, {"error": exc.message}
 
@@ -44,13 +38,7 @@ def handle_update_task(task_id: int, body: dict) -> tuple[int, dict]:
         (200, task) on success, otherwise (error status, {"error": message}).
     """
     try:
-        task = task_service.update_task(
-            task_id,
-            title=body.get("title"),
-            done=body.get("done"),
-            priority=body.get("priority"),
-        )
-        return 200, task
+        return 200, task_service.update_task_from_body(task_id, body)
     except AppError as exc:
         return exc.status_code, {"error": exc.message}
 

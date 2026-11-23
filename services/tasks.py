@@ -2,6 +2,8 @@ from repositories import tasks as task_repo
 from repositories import users as user_repo
 from utils.errors import NotFoundError, ValidationError
 
+MAX_TITLE_LEN = 200
+
 
 def get_task(task_id: int) -> dict:
     """Fetch a task by id.
@@ -45,6 +47,37 @@ def _validate_priority(priority: int) -> int:
     return priority
 
 
+def _validate_title(title: str) -> str:
+    """Validate a task title.
+
+    Args:
+        title: Candidate title.
+
+    Returns:
+        The stripped title.
+
+    Raises:
+        ValidationError: If title is not a non-blank string of at most
+            MAX_TITLE_LEN characters.
+    """
+    if not isinstance(title, str) or not title.strip():
+        raise ValidationError("Task title must be a non-empty string")
+    if len(title) > MAX_TITLE_LEN:
+        raise ValidationError(f"Task title must be at most {MAX_TITLE_LEN} characters")
+    return title.strip()
+
+
+def _require_body(body: dict) -> dict:
+    """Return body if it is a dict, otherwise raise.
+
+    Raises:
+        ValidationError: If body is not a dict (e.g. None, a list or a string).
+    """
+    if not isinstance(body, dict):
+        raise ValidationError("Request body must be a JSON object")
+    return body
+
+
 def create_task(user_id: int, title: str, priority: int = 3) -> dict:
     """Create a task owned by an existing user.
 
@@ -63,8 +96,7 @@ def create_task(user_id: int, title: str, priority: int = 3) -> dict:
     """
     if not isinstance(user_id, int) or user_id <= 0:
         raise ValidationError(f"Invalid user id: {user_id!r}")
-    if not isinstance(title, str) or not title.strip():
-        raise ValidationError("Task title must be a non-empty string")
+    _validate_title(title)
     _validate_priority(priority)
     if user_repo.find_by_id(user_id) is None:
         raise NotFoundError(f"User {user_id} not found")
@@ -105,9 +137,7 @@ def update_task(
         raise ValidationError(f"Invalid task id: {task_id!r}")
     fields: dict = {}
     if title is not None:
-        if not isinstance(title, str) or not title.strip():
-            raise ValidationError("Task title must be a non-empty string")
-        fields["title"] = title.strip()
+        fields["title"] = _validate_title(title)
     if done is not None:
         if not isinstance(done, bool):
             raise ValidationError(f"Invalid done flag: {done!r}")
@@ -161,8 +191,50 @@ def list_tasks(priority: int | str | None = None) -> list[dict]:
     if priority is None:
         return task_repo.find_all()
     if isinstance(priority, str):
-        if not (priority.isascii() and priority.isdigit()):
-            raise ValidationError(f"Invalid priority: {priority!r}")
+        if len(priority) > 3 or not (priority.isascii() and priority.isdigit()):
+            raise ValidationError(f"Invalid priority: {priority[:20]!r}")
         priority = int(priority)
     _validate_priority(priority)
     return task_repo.find_all(priority)
+
+
+def create_task_from_body(body: dict) -> dict:
+    """Create a task from a request body.
+
+    Args:
+        body: Mapping with "user_id", "title" and optional "priority".
+
+    Returns:
+        The stored task as a dict.
+
+    Raises:
+        ValidationError: If body is not a dict or any field is invalid.
+        NotFoundError: If no user has that id.
+    """
+    body = _require_body(body)
+    if "priority" in body:
+        return create_task(body.get("user_id"), body.get("title"), body["priority"])
+    return create_task(body.get("user_id"), body.get("title"))
+
+
+def update_task_from_body(task_id: int, body: dict) -> dict:
+    """Update a task from a request body.
+
+    Args:
+        task_id: Id of the task to update.
+        body: Mapping with optional "title", "done" and "priority".
+
+    Returns:
+        The updated task as a dict.
+
+    Raises:
+        ValidationError: If body is not a dict or any field is invalid.
+        NotFoundError: If no task has that id.
+    """
+    body = _require_body(body)
+    return update_task(
+        task_id,
+        title=body.get("title"),
+        done=body.get("done"),
+        priority=body.get("priority"),
+    )

@@ -63,3 +63,22 @@ def set_notification_pref(user_id: int, pref: str) -> dict:
     if user is None:
         raise NotFoundError(f"User {user_id} not found")
     return {"user_id": user_id, "notification_pref": user["notification_pref"]}
+
+
+def set_notification_pref_from_body(user_id: int, body: dict) -> dict:
+    """Set a user's notification preference from a request body.
+
+    Args:
+        user_id: Positive integer id of the user.
+        body: Mapping with "notification_pref".
+
+    Returns:
+        A dict with user_id and the stored notification_pref.
+
+    Raises:
+        ValidationError: If body is not a dict, or user_id / pref is invalid.
+        NotFoundError: If no user has that id.
+    """
+    if not isinstance(body, dict):
+        raise ValidationError("Request body must be a JSON object")
+    return set_notification_pref(user_id, body.get("notification_pref"))
