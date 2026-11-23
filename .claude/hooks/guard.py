@@ -15,6 +15,7 @@ The older .claude/hooks/guard_writes.py (PA6) still runs alongside and protects
 utils/errors.py, services/users.py and the manifests.
 """
 
+import fnmatch
 import json
 import os
 import re
@@ -38,9 +39,7 @@ SECRET_FILE = re.compile(
 
 # --- project rule 1: protected paths (project-relative, case-insensitive) ---
 PROTECTED = [
-    ".claude/settings.json",
-    ".claude/settings.local.json",
-    ".claude/hooks/",
+    ".claude/",
     "tests/test_security.py",
     "tests/test_guard.py",
     "tests/test_guard_writes.py",
@@ -61,16 +60,22 @@ SECRET_VALUE = re.compile(
 # --- network ----------------------------------------------------------------
 NETWORK_CMDS = {
     "curl", "wget", "nc", "ncat", "netcat", "socat", "telnet", "ssh", "scp",
-    "sftp", "ftp", "rsync", "gh", "http", "https", "aria2c",
+    "sftp", "ftp", "rsync", "gh", "http", "https", "aria2c", "dig", "nslookup",
+    "host", "ping", "ping6", "whois", "drill",
 }
+PIP_INSTALL = re.compile(r"\bpip3?(?:\.\d+)?\s+(?:\S+\s+)*?(?:install|download)\b")
 NETWORK_CODE = re.compile(
     r"/dev/(?:tcp|udp)/|\burllib\b|\brequests\b|\bhttpx\b|http\.(?:client|server)"
     r"|\bsocket\b|\burlopen\b|\bfetch\(",
     re.IGNORECASE,
 )
-GIT_NETWORK = re.compile(r"\bgit\s+(?:-\S+\s+)*(?:push|remote\s+(?:add|set-url))\b")
-# MCP tools whose action name starts with one of these are treated as read-only.
+GIT_NETWORK_SUBCOMMANDS = {"push", "fetch", "pull", "clone", "ls-remote", "submodule"}
+GIT_VALUE_OPTIONS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
+GREP_CMDS = {"grep", "egrep", "fgrep"}
+# MCP tools are read-only only if the action starts with a read verb and has no
+# write word anywhere (get_or_create_drive, get_access_to_vercel_url).
 MCP_READ_ONLY = re.compile(r"^(?:get|list|search|read|query|count|aggregate|guide)")
+MCP_WRITE_WORD = re.compile(r"create|access|bypass|write|update|delete|send|upload")
 
 # --- destructive ------------------------------------------------------------
 DESTRUCTIVE = [
@@ -90,12 +95,14 @@ SHELL_WRITE = re.compile(
     r"(?:^|[\s;&|(])(?:sudo\s+)?(?:tee|cp|mv|dd|truncate|ln|rsync|patch|rm|chmod)\s"
     r"|\bsed\s+(?:-\S*\s+)*(?:-\S*i\S*|--in-place)|\bperl\s+(?:-\S*\s+)*-\S*i"
     r"|\bgit\s+(?:checkout|restore|apply)\b|\.write\(|write_text|write_bytes"
+    r"|\bshutil\.|\bos\.(?:replace|rename)\b"
     r"|\bopen\([^)]*['\"][wax]\+?b?['\"]",
     re.IGNORECASE,
 )
 
 WRAPPERS = {
     "sudo", "env", "nohup", "time", "timeout", "command", "exec", "xargs", "nice",
+    "busybox",
 }
 SHELLS = {"bash", "sh", "zsh", "dash"}
 
@@ -151,6 +158,59 @@ def command_names(tokens: list[str]) -> list[str]:
     return names
 
 
+def git_network(tokens: list[str]) -> bool:
+    """True if a token list runs git with a subcommand that talks to a remote."""
+    for i, tok in enumerate(tokens):
+        if os.path.basename(tok) != "git":
+            continue
+        j = i + 1
+        while j < len(tokens) and tokens[j].startswith("-"):
+            j += 2 if tokens[j] in GIT_VALUE_OPTIONS else 1
+        sub = tokens[j] if j < len(tokens) else ""
+        nxt = tokens[j + 1] if j + 1 < len(tokens) else ""
+        if sub in GIT_NETWORK_SUBCOMMANDS:
+            return True
+        if sub == "remote" and nxt in ("add", "set-url"):
+            return True
+    return False
+
+
+def recursive_grep_reaches_root(tokens: list[str], names: list[str]) -> bool:
+    """True for grep -r whose search path includes the repository root (and .env)."""
+    if not names or names[-1] not in GREP_CMDS:
+        return False
+    start = next(i for i, t in enumerate(tokens) if os.path.basename(t) == names[-1])
+    args = tokens[start + 1 :]
+    opts = [a for a in args if a.startswith("-")]
+    recursive = any(
+        a in ("--recursive", "--dereference-recursive")
+        or (not a.startswith("--") and ("r" in a[1:] or "R" in a[1:]))
+        for a in opts
+    )
+    if not recursive or any(a.startswith("--exclude=.env") for a in opts):
+        return False
+    positional = [a for a in args if not a.startswith("-")]
+    has_pattern_flag = any(a in ("-e", "-f") or a.startswith("--regexp") for a in opts)
+    paths = positional if has_pattern_flag else positional[1:]
+    if not paths:
+        return True  # grep -r defaults to the current directory
+    for path in paths:
+        resolved = Path(os.path.normpath(PROJECT_ROOT / Path(path).expanduser()))
+        if resolved == PROJECT_ROOT or PROJECT_ROOT.is_relative_to(resolved):
+            return True
+    return False
+
+
+def glob_matches_secret(tokens: list[str]) -> bool:
+    """True if a glob token could expand to .env (e.g. .e*, .en[v])."""
+    for tok in tokens:
+        base = os.path.basename(tok)
+        is_glob = base.startswith(".") and any(c in base for c in "*?[")
+        if is_glob and any(fnmatch.fnmatch(n, base) for n in (".env", ".env.local")):
+            return True
+    return False
+
+
 def has_rm_rf(tokens: list[str]) -> bool:
     for i, tok in enumerate(tokens):
         if os.path.basename(tok) != "rm":
@@ -171,17 +231,23 @@ def check_bash(command: str, depth: int = 0) -> str | None:
         return "the command touches a secret file (.env, keys). Use .env.example."
     if SECRET_VALUE.search(command):
         return "the command contains the canary or a secret-looking value."
-    if GIT_NETWORK.search(command):
-        return "git push / remote changes are for humans only (SECURITY_POLICY.md)."
+    if PIP_INSTALL.search(command):
+        return "pip install downloads code; dependencies are a human change."
     if NETWORK_CODE.search(command):
         return "the command opens a network connection from code."
     for name, pattern in DESTRUCTIVE:
         if pattern.search(command):
             return f"destructive command ({name})."
     for tokens in segments(command):
+        if any(SECRET_FILE.search(t) for t in tokens):  # after shell unquoting
+            return "the command touches a secret file (.env, keys). Use .env.example."
         names = command_names(tokens)
         if any(n in NETWORK_CMDS for n in names):
             return f"network tool ({names[-1]}) is not allowed in this project."
+        if git_network(tokens):
+            return "git push/fetch/remote changes are for humans only."
+        if recursive_grep_reaches_root(tokens, names) or glob_matches_secret(tokens):
+            return "the command can reach a secret file (.env) via recursion or a glob."
         if has_rm_rf(tokens):
             return "destructive command (rm -rf)."
         if names and names[-1] in SHELLS and "-c" in tokens and depth < 3:
@@ -252,7 +318,7 @@ def check(event: object) -> str | None:
         return "WebFetch is a way out for data; ask the user to fetch the page."
     if tool.startswith("mcp__"):
         action = tool.rsplit("__", 1)[-1]
-        if not MCP_READ_ONLY.match(action):
+        if not MCP_READ_ONLY.match(action) or MCP_WRITE_WORD.search(action):
             return f"MCP tool {tool} can write or send data; a human must run it."
         if SECRET_VALUE.search(json.dumps(tool_input)):
             return "the MCP call contains the canary or a secret value."
