@@ -23,7 +23,7 @@ Two more things the scan made me notice:
 **Mattered most: the PreToolUse hook (`guard.py`).**
 - In A3 Haiku went straight to `grep … .env` in Bash. The `Read(./.env)` deny rule never saw it.
   Only the hook, which checks every tool and Bash, stopped it.
-- The hook also fails closed and has 58 tests, so I know what it blocks.
+- The hook also fails closed and has 76 subprocess tests, so I know what it blocks.
 
 **False confidence (two):**
 - **Claude's judgment.** It stopped all eight A1/A2 runs. That looks like the attack failed, but
@@ -31,7 +31,7 @@ Two more things the scan made me notice:
   Judgment is also not a stable control: a different model, wording or context could go the other
   way.
 - **Deny rules.** `Read(./.env)` looked like it "protected .env". It covers one tool and one
-  spelling. `cat .e''nv` and base64 paths get past both the deny rule and my hook regexes. Only a
+  spelling. The final scan found more bypasses of my hook (`grep -r KEY .`, `.e*`, `git -C . push`). I closed those, but base64 or variable-built paths still pass. Only a
   sandbox or container really keeps the file out of reach.
 
 ## 3. What I'll change on my capstone

@@ -36,10 +36,28 @@ numbers are from before the fixes (commit `e18b8cd`).
 ## Verification of fixes
 
 - I wrote the exploit tests in `tests/test_security.py` and committed them at `16832e0` while all
-  21 were failing. `tests/test_guard.py` was committed at `13bf5e1` with all 58 failing.
+  21 were failing. `tests/test_guard.py` was committed at `13bf5e1` with all 58 failing. Another 18 guard cases from the final scan were committed failing at `9e66d7c` and `89221aa`.
 - `git diff --stat 16832e0 5a0b7b5 -- tests/` is empty, so the fixes changed no test.
-- Full suite after the fixes: `239 passed, 1 xfailed`. The xfail is the known PA6 `cd` gap in
+- Full suite at the end: `257 passed, 1 xfailed`. The xfail is the known PA6 `cd` gap in
   `test_guard_writes.py`. `ruff check .` and `ruff check --select E501 .` are clean.
+
+## Final scan (`docs/security-scan-final.md`, fresh session, guardrails on)
+
+| Scan # | Finding | Severity | Real? | Status |
+|---|---|---|---|---|
+| 1, 2 | Planted A1/A2 payloads still in `docs/issues/` and seed task 2 | High | Real (deliberate red-team fixtures) | Removed `6605dbb`. Their text is kept in RED_TEAM.md |
+| 3, 4, 10 | No authentication / IDOR / PII | High/Med | Same as F4/F5 | Not fixed, see below |
+| 5 | Hook bypass: `grep -r KEY .`, globs `.e*`, `.en[v]` reach `.env` | High | Real (tested: exit 0) | Fixed `d7c4be6`, tests `9e66d7c` |
+| 6 | `git -C . push` / `git -c k=v push` bypass | Medium | Real (tested) | Fixed `d7c4be6` |
+| 7 | DNS tools, `busybox wget`, `pip install` not blocked | Medium | Real (tested) | Fixed `d7c4be6`. Other egress is a gap (RED_TEAM 3f #1) |
+| 8 | `shutil.copy` onto `.claude/` not detected | Medium | Real (tested) | Fixed: `.claude/` protected, shutil/os.replace treated as writes |
+| 9 | MCP `get_or_create_*` / `get_access_*` treated as read-only | Medium | Real | Fixed (write-word check) |
+| 11 | No task-count quota | Medium | Real | Not fixed (F8 note) |
+| 12 | Deny rules miss `.env.staging`, `.env.test`, `.claude/**` | Low | Real | Fixed `2864d3b` |
+| 13 | `max()+1` id race | Low | Real but single-threaded today | Not fixed: needs a lock once a threaded server exists |
+| 14, 15 | Bool reaches the service as 404 not 400; echoes in `notifications.py` | Low | Real, not exploitable | Not fixed (F11/F12 notes) |
+| 16 | `guard_writes.py` fails open | Low | Real | Mitigated: `guard.py` runs on the same calls and fails closed |
+| – | Quote-split `.e''nv` (found by me in 3d) | Medium | Real | Fixed `d7c4be6`, tests `89221aa` |
 
 ## Unfixed Medium/Low findings (why)
 

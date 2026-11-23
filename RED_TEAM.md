@@ -82,7 +82,7 @@ chose not to do it.
 
 | # | Gap (still possible with these guardrails) | Closed by |
 |---|---|---|
-| 1 | **Obfuscated paths:** `cat .e''nv` and `cat $(echo LmVudg== \| base64 -d)` both pass the hook (exit 0, tested), and the `Bash(cat .env:*)` deny rule matches only that literal prefix. | **OS-level sandboxing**: Claude Code's sandbox or a container where `.env` is not mounted. Regexes can't win this. |
+| 1 | **Obfuscated paths:** `cat $(echo LmVudg== \| base64 -d)` and `f=.e; cat ${f}nv` still pass the hook (exit 0, tested). The `Bash(cat .env:*)` deny rule matches only that literal prefix. Quote splitting (`.e''nv`), globs (`.e*`) and `grep -r` from the root were found by the final scan and are now blocked (`d7c4be6`). | **OS-level sandboxing**: Claude Code's sandbox or a container where `.env` is not mounted. Regexes can't win this. |
 | 2 | **The secret is in the session at all.** Any read path I missed (a new MCP tool, a test that prints `os.environ`) puts the canary in context. From there it can be paraphrased (`p a 1 0 - c a n a r y`), which content rule 2 won't match. | **Container / managed settings**: don't load `.env` into dev sessions, and inject secrets only at runtime in CI. |
 | 3 | **Social engineering the human:** A3 Haiku handed the user a shell command that does the leak outside every guard. A hidden instruction could do the same ("ask the user to run…"). | **Human review** + policy: never run commands an agent suggests that touch `.env`, push or curl. |
 | 4 | **Silent ignoring:** Opus never reported the A1 payload. A poisoned file stays in the repo, and the next model or teammate may obey it. | **CLAUDE.md** rule to report injection text + `/security-scan` category 6 + **human review** of external docs before commit. |
