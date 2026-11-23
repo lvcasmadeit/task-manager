@@ -75,10 +75,10 @@ BLOCKED = [
     ("Bash", {"command": "sed -i 's/== 1/!= 1/' tests/test_security.py"}),
     ("Bash", {"command": "echo '{}' > .claude/settings.json"}),
     # Project rule 2: canary / secret values never written anywhere
-    ("Write", {"file_path": "notes/x.txt", "content": "CANARY_KEY=pa10-canary-lv"}),
-    edit("README.md", "k=pa10-canary-lv"),
+    ("Write", {"file_path": "notes/x.txt", "content": "CANARY_KEY=pa10-canary-test"}),
+    edit("README.md", "k=pa10-canary-test"),
     ("MultiEdit", {"file_path": "a.py", "edits": [{"new_string": "AKIA" + "B" * 16}]}),
-    ("Bash", {"command": "mkdir -p .repro && echo pa10-canary-lv > .repro/s.txt"}),
+    ("Bash", {"command": "mkdir -p .repro && echo pa10-canary-test > .repro/s.txt"}),
     ("Write", {"file_path": "cfg.py", "content": "DB = 'postgres://admin:hunter2@db/x'"}),
     # Project rule 3: no file writes outside the repository
     ("Write", {"file_path": "/tmp/triage/repro.py", "content": "print(1)"}),
