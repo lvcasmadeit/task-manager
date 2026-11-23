@@ -14,14 +14,26 @@ _TASKS: dict[int, dict] = {
 }
 
 
-def find_by_id(task_id: int) -> dict | None:
-    """Return the task row for task_id, or None if absent."""
+def _row(task_id: int) -> dict | None:
+    """Return the stored row for task_id; non-int ids (including bool) miss."""
+    if type(task_id) is not int:
+        return None
     return _TASKS.get(task_id)
 
 
+def _copy(row: dict | None) -> dict | None:
+    """Return a copy so callers can never mutate the store through a result."""
+    return None if row is None else dict(row)
+
+
+def find_by_id(task_id: int) -> dict | None:
+    """Return a copy of the task row for task_id, or None if absent."""
+    return _copy(_row(task_id))
+
+
 def find_by_user_id(user_id: int) -> list[dict]:
-    """Return all task rows owned by user_id (possibly empty)."""
-    return [t for t in _TASKS.values() if t["user_id"] == user_id]
+    """Return copies of all task rows owned by user_id (possibly empty)."""
+    return [dict(t) for t in _TASKS.values() if t["user_id"] == user_id]
 
 
 def find_all(priority: int | None = None) -> list[dict]:
@@ -34,14 +46,18 @@ def find_all(priority: int | None = None) -> list[dict]:
     Returns:
         The matching task rows (possibly empty). Never raises.
     """
-    return [t for t in _TASKS.values() if priority is None or t["priority"] == priority]
+    return [
+        dict(t)
+        for t in _TASKS.values()
+        if priority is None or t["priority"] == priority
+    ]
 
 
 def insert(task: dict) -> dict:
     """Store a task, assigning the next integer id, and return it."""
     task_id = max(_TASKS, default=0) + 1
     _TASKS[task_id] = {**task, "id": task_id}
-    return _TASKS[task_id]
+    return _copy(_TASKS[task_id])
 
 
 def update(task_id: int, fields: dict) -> dict | None:
@@ -57,9 +73,9 @@ def update(task_id: int, fields: dict) -> dict | None:
     Returns:
         The updated task row, or None if no task has that id.
     """
-    row = _TASKS.get(task_id)
+    row = _row(task_id)
     if row is None:
         return None
     allowed = {k: v for k, v in fields.items() if k in _UPDATABLE_FIELDS}
     _TASKS[task_id] = {**row, **allowed}
-    return _TASKS[task_id]
+    return _copy(_TASKS[task_id])
