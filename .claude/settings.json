@@ -7,8 +7,6 @@
       "Read(./.env.production)",
       "Read(**/*.pem)",
       "Read(**/*.key)",
-      "Edit(./.env)",
-      "Edit(./.env.local)",
       "Bash(cat .env:*)",
       "Bash(source .env:*)",
       "Bash(curl:*)",
@@ -30,7 +28,18 @@
       "mcp__claude_ai_Supabase__execute_sql",
       "mcp__claude_ai_Supabase__apply_migration",
       "mcp__claude_ai_Supabase__delete_branch",
-      "mcp__claude_ai_Vercel__create_deployment"
+      "mcp__claude_ai_Vercel__create_deployment",
+      "Read(./.env.development)",
+      "Read(./.env.staging)",
+      "Read(./.env.test)",
+      "Edit(./.env*)",
+      "Edit(./.claude/**)",
+      "Edit(./tests/test_security.py)",
+      "Edit(./tests/test_guard.py)",
+      "Edit(./tests/test_guard_writes.py)",
+      "Bash(git -C:*)",
+      "Bash(pip install:*)",
+      "Bash(.venv/bin/pip install:*)"
     ]
   },
   "hooks": {
