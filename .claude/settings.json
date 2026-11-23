@@ -1,4 +1,38 @@
 {
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./.env.*.local)",
+      "Read(./.env.production)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Edit(./.env)",
+      "Edit(./.env.local)",
+      "Bash(cat .env:*)",
+      "Bash(source .env:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(nc:*)",
+      "Bash(ncat:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(rsync:*)",
+      "Bash(gh:*)",
+      "Bash(git push:*)",
+      "Bash(git remote add:*)",
+      "WebFetch",
+      "Bash(rm -rf:*)",
+      "Bash(rm -r repositories:*)",
+      "Bash(rm -r tests:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean:*)",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "mcp__claude_ai_Supabase__delete_branch",
+      "mcp__claude_ai_Vercel__create_deployment"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -7,6 +41,15 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard_writes.py"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard.py"
           }
         ]
       }
