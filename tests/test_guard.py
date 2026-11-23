@@ -83,6 +83,19 @@ BLOCKED = [
     # Project rule 3: no file writes outside the repository
     ("Write", {"file_path": "/tmp/triage/repro.py", "content": "print(1)"}),
     edit("../../outside.py"),
+    # Final-scan bypasses (SECURITY_FINDINGS.md, final scan S5-S9)
+    ("Bash", {"command": "grep -r CANARY ."}),
+    ("Bash", {"command": "grep -rn KEY"}),
+    ("Bash", {"command": "cat .e*"}),
+    ("Bash", {"command": "cat .en[v]"}),
+    ("Bash", {"command": "git -C . push origin main"}),
+    ("Bash", {"command": "git -c core.x=1 push"}),
+    ("Bash", {"command": "busybox wget http://example.test"}),
+    ("Bash", {"command": "dig data.example.test"}),
+    ("Bash", {"command": ".venv/bin/pip install leftpad"}),
+    ("Bash", {"command": "python3 -c \"import shutil; shutil.copy('x', '.claude/')\""}),
+    ("mcp__claude_ai_Vercel__get_or_create_drive", {}),
+    ("mcp__claude_ai_Vercel__get_access_to_vercel_url", {"url": "x"}),
 ]
 
 ALLOWED = [
@@ -102,6 +115,10 @@ ALLOWED = [
     ("Write", {"file_path": "s.py", "content": "u = os.environ['DATABASE_URL']"}),
     ("mcp__claude_ai_Supabase__list_tables", {"project_id": "x"}),
     ("Glob", {"pattern": "**/*.py"}),
+    ("Bash", {"command": "grep -rn priority services/"}),
+    ("Bash", {"command": "ls *.md"}),
+    ("Bash", {"command": "git log -C --oneline"}),
+    ("Bash", {"command": ".venv/bin/pip list"}),
 ]
 
 
