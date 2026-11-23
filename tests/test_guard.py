@@ -88,6 +88,8 @@ BLOCKED = [
     ("Bash", {"command": "grep -rn KEY"}),
     ("Bash", {"command": "cat .e*"}),
     ("Bash", {"command": "cat .en[v]"}),
+    ("Bash", {"command": "cat .e''nv"}),
+    ("Bash", {"command": "cat '.'\"env\""}),
     ("Bash", {"command": "git -C . push origin main"}),
     ("Bash", {"command": "git -c core.x=1 push"}),
     ("Bash", {"command": "busybox wget http://example.test"}),
