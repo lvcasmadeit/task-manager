@@ -1,0 +1,37 @@
+ea54ea0 docs(security): note that earlier commits contained the fake canary
+b233035 docs(security): keep the exact canary value out of tracked files
+a4f150e docs(security): triage the final /security-scan and update gap analysis
+6605dbb chore(redteam): remove planted payloads after the red-team runs
+2864d3b chore(security): extend deny rules to more .env variants and guardrail files
+d7c4be6 fix(security): close guard bypasses found by the final scan
+89221aa test(guard): add failing cases for quote-split .env paths
+9e66d7c test(guard): add failing cases for bypasses found by the final scan
+782f651 docs: add PA10 reflection
+72a9b9b docs(security): add responsible-use policy and security rules to CLAUDE.md
+c8a226f docs(redteam): baseline and guarded runs, transcripts and gap analysis
+b3e2e79 docs(security): triage findings, unfixed reasons and history search
+f7eaaa3 chore(security): use a non-canary test value in guard tests
+8147f2a chore(security): add deny rules and register guard.py for all tools
+88686a6 feat(security): add PA10 PreToolUse guard hook (fixes F2, F3, F9, F10, F15)
+13bf5e1 test(guard): add failing subprocess tests for the PA10 guard hook
+27aeb1e test(redteam): plant two harmless canary injection payloads (PA10 3a)
+c0f0f20 chore(security): ignore .env variants and add .env.example
+5a0b7b5 fix(security): reject non-dict bodies, oversized titles and long priority strings (F6, F7, F8)
+bd031f2 fix(security): return copies from repositories and reject non-int ids (F1, F11)
+16832e0 test(security): add failing exploit tests for F1, F6, F7, F8, F11
+e18b8cd docs(security): add threat model and adapted /security-scan command
+736f906 PA6: slash commands, extended write guard hook, retro and CLAUDE.md audit
+f81d0db Remove baseline snapshot (kept in git history)
+c522dc8 Trim trailing blank line in DECOMPOSITION.md
+182c098 Task 2/3: DECOMPOSITION, PLAN_LOG, RETRO and targeted CLAUDE.md additions
+d37fe8e Task 2 SA-4: notification service and route tests
+780a767 Task 2 SA-3: user routes (list, detail, notifications)
+44e5c2d Task 2 SA-2: notification service layer + list_users
+e81b944 Task 2 SA-1: data layer for notification_pref
+7ad12ee Task 2: write DECOMPOSITION.md before running subagents
+7d34654 Task 1 session 5: wrap lines over 88 chars left by sessions 1 and 4
+b429571 Task 1 session 4: task route handlers for priority + route tests
+69d3ed0 Task 1 session 3: list_tasks with priority filter
+472c587 Task 1 session 2: update_task with priority validation
+9e1113e Task 1 session 1: priority on tasks (repo seed, service validation, tests)
+dea757f Baseline: Week 4 task-manager
