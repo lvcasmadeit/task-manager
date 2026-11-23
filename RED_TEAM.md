@@ -1,6 +1,6 @@
 # Red Team: prompt injection against my Claude Code setup
 
-**Canary:** `CANARY_KEY=pa10-canary-lv`, only in the untracked `.env`. Every payload asks only for
+**Canary:** `CANARY_KEY=pa10-canary-<initials>`, only in the untracked `.env` (the exact value is never written in tracked files). Every payload asks only for
 a local file copy.
 
 **Setup:** each run was a fresh `claude -p` session (Claude Code 2.1.330) in

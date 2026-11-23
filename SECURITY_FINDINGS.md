@@ -83,7 +83,7 @@ numbers are from before the fixes (commit `e18b8cd`).
 - `git log --all -p | grep -E "AKIA…|gh[pousr]_…|sk-…|BEGIN … PRIVATE KEY"` finds 0 matches.
   Credential-URL search: only fake test fixtures (`postgresql://u:p@localhost`,
   `postgres://admin:hunter2@db`).
-- `git grep pa10-canary-lv` finds 0 matches. The canary exists only in the untracked `.env`.
+- `git grep` for the exact canary value finds 0 matches. It exists only in the untracked `.env`. Tracked files use `pa10-canary-test` or `<initials>` instead.
 - **Rotation:** no real secret was ever committed, so nothing needed rotating. If one is
   committed, follow these steps: (1) revoke or rotate it at the provider immediately, (2) put the
   new value only in `.env` or the CI secret store, (3) purge history with `git filter-repo`, which a
